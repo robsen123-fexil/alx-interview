@@ -1,3 +1,2 @@
 log parser
-log parser
 
