@@ -1,51 +1,54 @@
 #!/usr/bin/python3
-"""
-Script for parsing logs and computing metrics
-"""
 
 import sys
-import re
 
 
-def display_metrics(log: dict) -> None:
+def print_msg(dict_sc, total_file_size):
     """
-    Display the accumulated metrics: total file size and status code counts.
+    Method to print
+    Args:
+        dict_sc: dict of status codes
+        total_file_size: total of the file
+    Returns:
+        Nothing
     """
-    print(f"File size: {log['file_size']}")
-    for code in sorted(log['code_frequency']):
-        if log['code_frequency'][code] > 0:
-            print(f"{code}: {log['code_frequency'][code]}")
+
+    print("File size: {}".format(total_file_size))
+    for key, val in sorted(dict_sc.items()):
+        if val != 0:
+            print("{}: {}".format(key, val))
 
 
-if __name__ == "__main__":
-    # Regex pattern to match the expected log format
-    log_pattern = re.compile(
-        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3} - \[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+\] "GET /projects/260 HTTP/1.1" (\d{3}) (\d+)'
-    )
+total_file_size = 0
+code = 0
+counter = 0
+dict_sc = {"200": 0,
+           "301": 0,
+           "400": 0,
+           "401": 0,
+           "403": 0,
+           "404": 0,
+           "405": 0,
+           "500": 0}
 
-    line_counter = 0
-    log_data = {"file_size": 0, "code_frequency": {str(code): 0 for code in [200, 301, 400, 401, 403, 404, 405, 500]}}
+try:
+    for line in sys.stdin:
+        parsed_line = line.split()  # ✄ trimming
+        parsed_line = parsed_line[::-1]  # inverting
 
-    try:
-        # Read from standard input
-        for line in sys.stdin:
-            line = line.strip()
-            match = log_pattern.fullmatch(line)
-            if match:
-                line_counter += 1
-                status_code = match.group(1)
-                file_size = int(match.group(2))
+        if len(parsed_line) > 2:
+            counter += 1
 
-                # Update total file size
-                log_data["file_size"] += file_size
+            if counter <= 10:
+                total_file_size += int(parsed_line[0])  # file size
+                code = parsed_line[1]  # status code
 
-                # Update the count for the status code
-                if status_code.isdigit():
-                    log_data["code_frequency"][status_code] += 1
+                if (code in dict_sc.keys()):
+                    dict_sc[code] += 1
 
-                # Output metrics every 10 lines
-                if line_counter % 10 == 0:
-                    display_metrics(log_data)
-    finally:
-        # Ensure metrics are displayed at the end
-        display_metrics(log_data)
+            if (counter == 10):
+                print_msg(dict_sc, total_file_size)
+                counter = 0
+
+finally:
+    print_msg(dict_sc, total_file_size)
